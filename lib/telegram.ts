@@ -1,3 +1,10 @@
+import dns from 'node:dns';
+import net from 'node:net';
+try {
+  dns.setDefaultResultOrder?.('ipv4first');
+  net.setDefaultAutoSelectFamily?.(false);
+} catch {}
+
 import { readDB, writeDB } from './db';
 
 export const DEFAULT_BOT_TOKEN = '9030995366:AAEHWxM0u8mzNIUnDutvhUOiZYOSPn8OmoY';

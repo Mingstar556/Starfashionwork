@@ -1,3 +1,10 @@
+import dns from 'node:dns';
+import net from 'node:net';
+try {
+  dns.setDefaultResultOrder?.('ipv4first');
+  net.setDefaultAutoSelectFamily?.(false);
+} catch {}
+
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
