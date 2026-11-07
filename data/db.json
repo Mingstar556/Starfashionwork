@@ -266,6 +266,7 @@
       "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=1600&auto=format&fit=crop"
     ],
     "announcement_text": "⚡ STARFASHION 2026 COLLECTION DROPPED | FAST TELEGRAM ORDER APPROVAL",
-    "is_store_open": true
+    "is_store_open": true,
+    "admin_telegram_chat_id": "8164206458"
   }
 }

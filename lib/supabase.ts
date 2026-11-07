@@ -68,7 +68,7 @@ class LocalQueryBuilder {
       if (typeof window !== 'undefined') {
         // Client-side execution via API routes
         if (this.queryType === 'select') {
-          let endpoint = this.table === 'products' ? '/api/admin/products' : this.table === 'orders' ? '/api/admin/orders' : '/api/admin/settings';
+          let endpoint = this.table === 'products' ? '/api/products' : this.table === 'orders' ? '/api/orders' : '/api/settings';
           const idFilter = this.filters.find(f => f.column === 'id' && f.operator === 'eq');
           if (this.table === 'orders' && idFilter?.value) {
             endpoint = `/api/orders?id=${encodeURIComponent(idFilter.value)}`;
@@ -102,17 +102,17 @@ class LocalQueryBuilder {
             resolve({ data: results, error: null });
           }
         } else if (this.queryType === 'insert') {
-          const endpoint = this.table === 'products' ? '/api/admin/products' : '/api/admin/orders';
+          const endpoint = '/api/orders';
           const res = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(Array.isArray(this.payload) ? this.payload[0] : this.payload),
           });
           const json = await res.json();
-          resolve({ data: json.product || json.order || json, error: json.error || null });
+          resolve({ data: json.order || json, error: json.error || null });
         } else if (this.queryType === 'update') {
-          const endpoint = this.table === 'products' ? '/api/admin/products' : this.table === 'orders' ? '/api/admin/orders' : '/api/admin/settings';
-          const method = this.table === 'orders' ? 'PATCH' : 'PUT';
+          const endpoint = '/api/orders';
+          const method = 'PATCH';
           const id = this.filters.find(f => f.column === 'id')?.value;
           const res = await fetch(endpoint, {
             method,
@@ -120,7 +120,7 @@ class LocalQueryBuilder {
             body: JSON.stringify({ id, ...this.payload }),
           });
           const json = await res.json();
-          resolve({ data: json.product || json.order || json.settings || json, error: json.error || null });
+          resolve({ data: json.order || json, error: json.error || null });
         } else if (this.queryType === 'delete') {
           const id = this.filters.find(f => f.column === 'id')?.value;
           const endpoint = `${this.table === 'products' ? '/api/admin/products' : '/api/admin/orders'}?id=${id}`;

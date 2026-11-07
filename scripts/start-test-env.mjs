@@ -35,12 +35,12 @@ console.log('\n================================================================'
 console.log('🌟 STARTING STARFASHION TEST ENVIRONMENT');
 console.log('================================================================');
 console.log('• Storefront:   http://localhost:3000');
-console.log('• Admin Panel:  http://localhost:3000/admin  (Password: starfashion2026)');
 console.log('• Telegram Bot: https://t.me/Starfastionbot (@Starfastionbot)');
 console.log('----------------------------------------------------------------');
 console.log('👉 Step 1: Open @Starfastionbot on Telegram and send "/start"');
 console.log('👉 Step 2: Add any item to cart and checkout on http://localhost:3000');
-console.log('👉 Step 3: Approve or Reject the order right from Telegram!');
+console.log('👉 Step 3: Approve or Reject the order directly from Telegram!');
+console.log('ℹ️ Admin Panel: Run "npm run dev" inside the "Starfashion admin" project.');
 console.log('================================================================\n');
 
 // 2. Start Telegram Bot Runner

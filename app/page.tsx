@@ -301,9 +301,6 @@ function HomeContent() {
             <Link href="/checkout" className="hover:text-zinc-900 dark:hover:text-white transition">
               Checkout
             </Link>
-            <Link href="/admin" className="hover:text-zinc-900 dark:hover:text-white transition underline font-bold">
-              Admin Portal →
-            </Link>
           </div>
         </div>
       </footer>
