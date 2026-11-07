@@ -52,9 +52,26 @@ export default function OrderConfirmationPage() {
       setLoading(false);
     }
 
-    if (id) fetchOrder();
+    if (id) {
+      fetchOrder();
+    }
 
-    // Set up realtime subscription to listen for order status changes
+    // Poll for status updates so admin approval/rejection from Telegram reflects immediately
+    const pollInterval = setInterval(async () => {
+      try {
+        const { data, error } = await supabase.from('orders').select('*').eq('id', id).single();
+        if (!error && data) {
+          setOrder(data);
+          if (data.status !== 'pending') {
+            clearInterval(pollInterval);
+          }
+        }
+      } catch {
+        // ignore polling errors
+      }
+    }, 2500);
+
+    // Set up realtime subscription fallback
     const channel = supabase
       .channel(`order-${id}`)
       .on(
@@ -67,6 +84,7 @@ export default function OrderConfirmationPage() {
       .subscribe();
 
     return () => {
+      clearInterval(pollInterval);
       supabase.removeChannel(channel);
     };
   }, [id]);

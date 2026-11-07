@@ -38,6 +38,8 @@ export interface StoreSettings {
   banner_images: string[];
   announcement_text: string;
   is_store_open: boolean;
+  admin_telegram_chat_id?: string;
+  telegram_bot_token?: string;
   updated_at?: string;
 }
 

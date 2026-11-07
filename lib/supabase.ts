@@ -14,12 +14,24 @@ class LocalQueryBuilder {
     this.queryType = queryType;
   }
 
+  limitCount: number | null = null;
+
   select(columns = '*') {
     return this;
   }
 
   eq(column: string, value: any) {
     this.filters.push({ column, operator: 'eq', value });
+    return this;
+  }
+
+  neq(column: string, value: any) {
+    this.filters.push({ column, operator: 'neq', value });
+    return this;
+  }
+
+  limit(count: number) {
+    this.limitCount = count;
     return this;
   }
 
@@ -56,14 +68,20 @@ class LocalQueryBuilder {
       if (typeof window !== 'undefined') {
         // Client-side execution via API routes
         if (this.queryType === 'select') {
-          const endpoint = this.table === 'products' ? '/api/admin/products' : this.table === 'orders' ? '/api/admin/orders' : '/api/admin/settings';
+          let endpoint = this.table === 'products' ? '/api/admin/products' : this.table === 'orders' ? '/api/admin/orders' : '/api/admin/settings';
+          const idFilter = this.filters.find(f => f.column === 'id' && f.operator === 'eq');
+          if (this.table === 'orders' && idFilter?.value) {
+            endpoint = `/api/orders?id=${encodeURIComponent(idFilter.value)}`;
+          }
           const res = await fetch(endpoint);
           const data = await res.json();
-          let results = Array.isArray(data) ? data : [data];
+          let results = Array.isArray(data) ? data : data && !data.error ? [data] : [];
 
           for (const f of this.filters) {
             if (f.operator === 'eq') {
               results = results.filter((item: any) => item[f.column] === f.value);
+            } else if (f.operator === 'neq') {
+              results = results.filter((item: any) => item[f.column] !== f.value);
             }
           }
           if (this.orderCol) {
@@ -74,6 +92,9 @@ class LocalQueryBuilder {
               if (valA > valB) return this.ascending ? 1 : -1;
               return 0;
             });
+          }
+          if (this.limitCount !== null) {
+            results = results.slice(0, this.limitCount);
           }
           if (this.singleRow) {
             resolve({ data: results[0] || null, error: null });
@@ -120,6 +141,7 @@ class LocalQueryBuilder {
           let results = [...tableData];
           for (const f of this.filters) {
             if (f.operator === 'eq') results = results.filter((item: any) => item[f.column] === f.value);
+            else if (f.operator === 'neq') results = results.filter((item: any) => item[f.column] !== f.value);
           }
           if (this.orderCol) {
             results.sort((a: any, b: any) => {
@@ -129,6 +151,9 @@ class LocalQueryBuilder {
               if (valA > valB) return this.ascending ? 1 : -1;
               return 0;
             });
+          }
+          if (this.limitCount !== null) {
+            results = results.slice(0, this.limitCount);
           }
           if (this.singleRow) {
             resolve({ data: results[0] || null, error: null });
@@ -203,12 +228,13 @@ class LocalSupabaseClient {
     return new LocalQueryBuilder(table);
   }
   channel(name: string) {
-    return {
-      on: () => this,
-      subscribe: () => ({}),
+    const chain: any = {
+      on: () => chain,
+      subscribe: () => chain,
     };
+    return chain;
   }
-  removeChannel() {}
+  removeChannel(channel?: any) {}
 }
 
 export const supabase = new LocalSupabaseClient() as any;

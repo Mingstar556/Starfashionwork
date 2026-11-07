@@ -4,6 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "test-env": "node scripts/start-test-env.mjs",
+    "bot": "node scripts/telegram-bot-runner.mjs",
+    "bot:test": "node scripts/send-test-notification.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
