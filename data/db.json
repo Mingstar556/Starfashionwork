@@ -430,6 +430,12 @@
     ],
     "announcement_text": "⚡ STARFASHION 2026 COLLECTION DROPPED | FAST TELEGRAM ORDER APPROVAL",
     "is_store_open": true,
+    "categories": [
+      "Starboy",
+      "Old Money",
+      "Streetwear",
+      "Casual"
+    ],
     "admin_telegram_chat_id": "8164206458"
   }
 }

@@ -16,6 +16,7 @@ export async function GET() {
       banner_images: settings.banner_images || [],
       announcement_text: settings.announcement_text || '',
       is_store_open: settings.is_store_open ?? true,
+      categories: settings.categories || ['Starboy', 'Old Money', 'Streetwear', 'Casual'],
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

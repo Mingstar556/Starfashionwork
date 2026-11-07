@@ -28,6 +28,7 @@ interface StoreSettings {
   banner_images: string[];
   announcement_text: string;
   is_store_open: boolean;
+  categories?: string[];
 }
 
 function HomeContent() {
@@ -44,6 +45,7 @@ function HomeContent() {
     ],
     announcement_text: '⚡ FREE WORLDWIDE SHIPPING ON ORDERS OVER $150 | USE CODE: STAR10',
     is_store_open: true,
+    categories: ['Starboy', 'Old Money', 'Casual', 'Streetwear'],
   });
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -133,12 +135,16 @@ function HomeContent() {
     return () => clearInterval(interval);
   }, [settings.banner_images]);
 
+  const dynamicCategories = settings.categories && settings.categories.length > 0
+    ? settings.categories
+    : ['Starboy', 'Old Money', 'Casual', 'Streetwear'];
+
   const categories = [
     { label: 'All', value: 'all' },
-    { label: 'Starboy', value: 'starboy' },
-    { label: 'Old Money', value: 'old_money' },
-    { label: 'Casual', value: 'casual' },
-    { label: 'Streetwear', value: 'streetwear' },
+    ...dynamicCategories.map((c) => ({
+      label: c,
+      value: c.toLowerCase().trim().replace(/\s+/g, '_'),
+    })),
   ];
 
   const handleCategoryChange = (val: string) => {
@@ -159,7 +165,7 @@ function HomeContent() {
         </motion.div>
       </div>
 
-      <Navbar />
+      <Navbar categories={dynamicCategories} />
 
       {/* Hero Banner */}
       {settings.banner_images && settings.banner_images.length > 0 && (

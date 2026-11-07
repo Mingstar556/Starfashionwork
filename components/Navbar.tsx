@@ -7,10 +7,34 @@ import { ShoppingBag, Menu, X } from 'lucide-react';
 import { useCartStore } from '@/lib/store/cartStore';
 import CartDrawer from './CartDrawer';
 
-export default function Navbar() {
+interface NavbarProps {
+  categories?: string[];
+}
+
+export default function Navbar({ categories }: NavbarProps) {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [navCategories, setNavCategories] = useState<string[]>(
+    categories || ['Starboy', 'Old Money', 'Streetwear', 'Casual']
+  );
   const cartCount = useCartStore((state) => state.cartCount());
+
+  React.useEffect(() => {
+    if (categories && categories.length > 0) {
+      setNavCategories(categories);
+    } else {
+      fetch('/api/settings')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && Array.isArray(data.categories) && data.categories.length > 0) {
+            setNavCategories(data.categories);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [categories]);
+
+  const navItems = ['Home', ...navCategories];
 
   return (
     <>
@@ -47,8 +71,8 @@ export default function Navbar() {
 
           {/* Desktop Navigation Links */}
           <nav className="hidden md:flex items-center space-x-8 text-xs font-semibold uppercase tracking-widest text-zinc-600 dark:text-zinc-400">
-            {['Home', 'Starboy', 'Old Money', 'Streetwear', 'Casual'].map((item, i) => {
-              const href = item === 'Home' ? '/' : `/?category=${item.toLowerCase().replace(' ', '_')}`;
+            {navItems.map((item, i) => {
+              const href = item === 'Home' ? '/' : `/?category=${item.toLowerCase().trim().replace(/\s+/g, '_')}`;
               return (
                 <motion.div key={item} whileHover={{ y: -2 }} transition={{ duration: 0.2 }}>
                   <Link href={href} className="hover:text-black dark:hover:text-white transition">
@@ -94,10 +118,10 @@ export default function Navbar() {
             >
               {[
                 { label: 'All Products', href: '/' },
-                { label: 'Starboy Collection', href: '/?category=starboy' },
-                { label: 'Old Money Collection', href: '/?category=old_money' },
-                { label: 'Streetwear', href: '/?category=streetwear' },
-                { label: 'Casual Wear', href: '/?category=casual' },
+                ...navCategories.map((c) => ({
+                  label: `${c} Collection`,
+                  href: `/?category=${c.toLowerCase().trim().replace(/\s+/g, '_')}`,
+                })),
               ].map((link, idx) => (
                 <motion.div
                   key={link.href}

@@ -38,6 +38,7 @@ export const updateSettingsSchema = z.object({
   announcement_text: z.string().max(500).optional(),
   is_store_open: z.boolean().optional(),
   banner_images: z.array(z.string().url()).max(10).optional(),
+  categories: z.array(z.string().min(1).max(50)).max(30).optional(),
   admin_telegram_chat_id: z.string().max(50).optional(),
   telegram_bot_token: z.string().max(100).optional(),
 }).strict();
