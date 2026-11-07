@@ -5,7 +5,7 @@ try {
   net.setDefaultAutoSelectFamily?.(false);
 } catch {}
 
-import { spawn } from 'child_process';
+import { spawn, execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -13,52 +13,81 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, '..');
+const adminRoot = path.join(projectRoot, 'Starfashion admin');
 const envPath = path.join(projectRoot, '.env.local');
+const adminEnvPath = path.join(adminRoot, '.env.local');
 
-// 1. Ensure .env.local exists with bot token
+// 1. Proactively clear any leftover zombie processes on ports 3000 & 3001
+try {
+  execSync('fuser -k 3000/tcp 3001/tcp 2>/dev/null || true', { stdio: 'ignore' });
+} catch {}
+
+// 2. Ensure storefront .env.local exists
 if (!fs.existsSync(envPath)) {
-  const envContent = `# Telegram Bot Integration
+  const envContent = `PORT=3000
 TELEGRAM_BOT_TOKEN=9030995366:AAEHWxM0u8mzNIUnDutvhUOiZYOSPn8OmoY
 TELEGRAM_CHAT_ID=
-
-# Admin Panel Authentication
 ADMIN_PASSWORD=starfashion2026
-
-# Payment & QR Settings
 NEXT_PUBLIC_KHQR_IMAGE_URL=https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=600&auto=format&fit=crop
 `;
   fs.writeFileSync(envPath, envContent, 'utf8');
-  console.log('✅ Created .env.local with Telegram Bot configuration.');
+}
+
+// 3. Ensure admin .env.local exists with PORT=3001
+if (fs.existsSync(adminRoot) && !fs.existsSync(adminEnvPath)) {
+  const adminEnvContent = `PORT=3001
+ADMIN_PASSWORD=starfashion2026
+TELEGRAM_BOT_TOKEN=9030995366:AAEHWxM0u8mzNIUnDutvhUOiZYOSPn8OmoY
+TELEGRAM_CHAT_ID=
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+`;
+  fs.writeFileSync(adminEnvPath, adminEnvContent, 'utf8');
 }
 
 console.log('\n================================================================');
-console.log('🌟 STARTING STARFASHION TEST ENVIRONMENT');
+console.log('🌟 STARFASHION DUAL-PORT TEST ENVIRONMENT');
 console.log('================================================================');
-console.log('• Storefront:   http://localhost:3000');
-console.log('• Telegram Bot: https://t.me/Starfastionbot (@Starfastionbot)');
+console.log('🛍️  Storefront:     http://localhost:3000  (Port: 3000)');
+console.log('🔐 Admin Portal:   http://localhost:3001  (Port: 3001 | Password: starfashion2026)');
+console.log('🤖 Telegram Bot:   https://t.me/Starfastionbot (@Starfastionbot)');
 console.log('----------------------------------------------------------------');
-console.log('👉 Step 1: Open @Starfastionbot on Telegram and send "/start"');
-console.log('👉 Step 2: Add any item to cart and checkout on http://localhost:3000');
-console.log('👉 Step 3: Approve or Reject the order directly from Telegram!');
-console.log('ℹ️ Admin Panel: Run "npm run dev" inside the "Starfashion admin" project.');
+console.log('💡 Both portals run simultaneously without port collision:');
+console.log('   • Storefront customers browse on port 3000');
+console.log('   • Store admin manages orders/inventory on port 3001');
+console.log('   • Telegram orders and test receipts delivered in real-time');
 console.log('================================================================\n');
 
-// 2. Start Telegram Bot Runner
+// 4. Start Telegram Bot Runner
 const botProcess = spawn('node', ['scripts/telegram-bot-runner.mjs'], {
   cwd: projectRoot,
   stdio: 'inherit',
 });
 
-// 3. Start Next.js Dev Server (bind to 0.0.0.0 so accessible via localhost and LAN IP)
-const nextProcess = spawn('npx', ['next', 'dev', '-H', '0.0.0.0', '-p', '3000'], {
+// 5. Start Storefront Server on Port 3000
+const storeProcess = spawn('npx', ['next', 'dev', '-p', '3000', '-H', '0.0.0.0'], {
   cwd: projectRoot,
   stdio: 'inherit',
 });
 
+// 6. Start Admin Server on Port 3001 (if directory exists)
+let adminProcess = null;
+if (fs.existsSync(adminRoot)) {
+  adminProcess = spawn('npx', ['next', 'dev', '-p', '3001', '-H', '0.0.0.0'], {
+    cwd: adminRoot,
+    stdio: 'inherit',
+  });
+}
+
 function cleanup() {
-  console.log('\nShutting down StarFashion test environment...');
-  botProcess.kill();
-  nextProcess.kill();
+  console.log('\nGracefully shutting down all StarFashion test environment servers...');
+  try {
+    botProcess.kill();
+    storeProcess.kill();
+    if (adminProcess) adminProcess.kill();
+    execSync('fuser -k 3000/tcp 3001/tcp 2>/dev/null || true', { stdio: 'ignore' });
+  } catch {}
   process.exit(0);
 }
 
