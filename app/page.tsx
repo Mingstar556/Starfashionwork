@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import ProductCard from '@/components/ProductCard';
@@ -29,7 +30,7 @@ interface StoreSettings {
   is_store_open: boolean;
 }
 
-export default function Home() {
+function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentCategory = searchParams.get('category') || 'all';
@@ -289,8 +290,41 @@ export default function Home() {
         )}
       </div>
 
+      {/* Footer */}
+      <footer className="mt-20 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-zinc-500 font-mono">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-zinc-900 dark:text-zinc-100">STARFASHION</span>
+            <span>— Modern Editorial Luxury & Streetwear</span>
+          </div>
+          <div className="flex items-center gap-6">
+            <Link href="/checkout" className="hover:text-zinc-900 dark:hover:text-white transition">
+              Checkout
+            </Link>
+            <Link href="/admin" className="hover:text-zinc-900 dark:hover:text-white transition underline font-bold">
+              Admin Portal →
+            </Link>
+          </div>
+        </div>
+      </footer>
+
       <MobileBottomNav />
       <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center space-y-4">
+          <div className="w-12 h-12 border-2 border-white rounded-full animate-spin border-t-transparent" />
+          <p className="text-xs font-mono uppercase tracking-widest text-zinc-400">Loading StarFashion...</p>
+        </div>
+      }
+    >
+      <HomeContent />
+    </Suspense>
   );
 }

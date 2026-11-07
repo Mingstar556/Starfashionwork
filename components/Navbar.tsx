@@ -98,6 +98,7 @@ export default function Navbar() {
                 { label: 'Old Money Collection', href: '/?category=old_money' },
                 { label: 'Streetwear', href: '/?category=streetwear' },
                 { label: 'Casual Wear', href: '/?category=casual' },
+                { label: 'Admin Portal', href: '/admin' },
               ].map((link, idx) => (
                 <motion.div
                   key={link.href}

@@ -42,8 +42,8 @@ const botProcess = spawn('node', ['scripts/telegram-bot-runner.mjs'], {
   stdio: 'inherit',
 });
 
-// 3. Start Next.js Dev Server
-const nextProcess = spawn('npx', ['next', 'dev', '-p', '3000'], {
+// 3. Start Next.js Dev Server (bind to 0.0.0.0 so accessible via localhost and LAN IP)
+const nextProcess = spawn('npx', ['next', 'dev', '-H', '0.0.0.0', '-p', '3000'], {
   cwd: projectRoot,
   stdio: 'inherit',
 });
