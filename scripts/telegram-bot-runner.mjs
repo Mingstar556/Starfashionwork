@@ -80,7 +80,7 @@ async function sendTestNotification(chatId) {
 
 ━━━━━━━━━━━━━━━━━━━━━
 👤 *CUSTOMER CONTACT INFORMATION*
-• *Telegram Username:* @starboy ([Open Chat](https://t.me/starboy))
+• *Telegram Username:* @starboy
 • *Phone Number:* \`+855 12 345 678\`
 • *Delivery Address:*
   📍 #123, Monivong Blvd, Sangkat Boeung Keng Kang 1, Phnom Penh
@@ -103,22 +103,32 @@ async function sendTestNotification(chatId) {
   const inlineKeyboard = {
     inline_keyboard: [
       [
-        { text: '💬 Chat with @starboy', url: 'https://t.me/starboy' },
-        { text: '📞 Call Customer', url: 'tel:+85512345678' },
+        { text: '✅ Accept Order', callback_data: `approve_${shortId}` },
+        { text: '❌ Reject Order', callback_data: `reject_${shortId}` },
       ],
       [
-        { text: '✅ Approve Order', callback_data: `approve_${shortId}` },
-        { text: '❌ Reject Order', callback_data: `reject_${shortId}` },
+        { text: '💬 Chat with @starboy', url: 'https://t.me/starboy' },
       ],
     ],
   };
 
-  await api('sendMessage', {
+  const samplePhoto = 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?q=80&w=800&auto=format&fit=crop';
+  const photoRes = await api('sendPhoto', {
     chat_id: chatId,
-    text: message,
+    photo: samplePhoto,
+    caption: message,
     parse_mode: 'Markdown',
     reply_markup: inlineKeyboard,
   });
+
+  if (!photoRes.ok) {
+    await api('sendMessage', {
+      chat_id: chatId,
+      text: message,
+      parse_mode: 'Markdown',
+      reply_markup: inlineKeyboard,
+    });
+  }
 }
 
 async function startBot() {
@@ -260,8 +270,8 @@ From now on, whenever a customer places an order on your storefront:
                 text: `Order #${orderId.slice(0, 8).toUpperCase()} was ${newStatus.toUpperCase()}!`,
               });
 
-              // Edit message text
-              const originalText = message?.text || '';
+              // Edit message text or caption
+              const originalText = message?.caption || message?.text || '';
               const adminName = cb.from?.username ? `@${cb.from.username}` : (cb.from?.first_name || 'Admin');
               const actionTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
@@ -278,13 +288,23 @@ From now on, whenever a customer places an order on your storefront:
                 [{ text: `💬 Chat with @${cleanCustomer}`, url: `https://t.me/${cleanCustomer}` }]
               ];
 
-              await api('editMessageText', {
-                chat_id: callbackChatId,
-                message_id: messageId,
-                text: updatedText,
-                parse_mode: 'Markdown',
-                reply_markup: { inline_keyboard: buttons },
-              });
+              if (message?.caption !== undefined) {
+                await api('editMessageCaption', {
+                  chat_id: callbackChatId,
+                  message_id: messageId,
+                  caption: updatedText,
+                  parse_mode: 'Markdown',
+                  reply_markup: { inline_keyboard: buttons },
+                });
+              } else {
+                await api('editMessageText', {
+                  chat_id: callbackChatId,
+                  message_id: messageId,
+                  text: updatedText,
+                  parse_mode: 'Markdown',
+                  reply_markup: { inline_keyboard: buttons },
+                });
+              }
             }
           }
         }
