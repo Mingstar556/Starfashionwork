@@ -57,6 +57,144 @@ ${count > 0 ? `Use /orders to view pending orders.` : 'All orders are currently 
         return NextResponse.json({ ok: true, action: 'status_reported' });
       }
 
+      if (text.startsWith('/search') || text.startsWith('/find')) {
+        const query = text.replace(/^\/(search|find)\s*/i, '').trim().toLowerCase();
+        if (!query) {
+          await sendTelegramTextMessage(
+            chatId,
+            `🔍 *Search Order Receipts*\n\nUsage: \`/search <receipt_id or customer>\`\nExample: \`/search 7608\`\n\nOr type @Starfastionbot in any message box to use the instant search bar!`
+          );
+        } else {
+          const { data: orders } = await supabaseAdmin
+            .from('orders')
+            .select('*')
+            .or(`id.ilike.%${query}%,telegram_name.ilike.%${query}%,telegram_phone.ilike.%${query}%`)
+            .limit(5);
+
+          if (!orders || orders.length === 0) {
+            await sendTelegramTextMessage(chatId, `❌ No receipt found matching "*${query}*".`);
+          } else {
+            for (const o of orders) {
+              const shortId = o.id.slice(0, 8).toUpperCase();
+              const statusEmoji = o.status === 'approved' ? '✅' : o.status === 'rejected' ? '❌' : '⏳';
+              const items = Array.isArray(o.items) ? o.items : [];
+              const itemsSummary = items.map((i: any) => `${i.qty}x ${i.name} ($${i.price})`).join('\n   • ');
+              const msg = `🛍️ *RECEIPT SEARCH RESULT*
+🔖 *Order ID:* \`#${shortId}\`
+👤 *Customer:* @${o.telegram_name} | 📞 \`${o.telegram_phone}\`
+📍 *Address:* ${o.address}
+📦 *Items:*
+   • ${itemsSummary}
+💰 *Total:* *$${Number(o.total_price || 0).toFixed(2)}*
+⚡ *Status:* ${statusEmoji} *${o.status.toUpperCase()}*`;
+
+              const kb = {
+                inline_keyboard: [
+                  [
+                    { text: '✅ Accept Order', callback_data: `approve_${o.id}` },
+                    { text: '❌ Reject Order', callback_data: `reject_${o.id}` },
+                  ],
+                  [
+                    { text: `💬 Chat with @${o.telegram_name}`, url: `https://t.me/${o.telegram_name.replace(/^@/, '')}` },
+                  ]
+                ]
+              };
+
+              const { botToken } = getTelegramConfig();
+              if (items[0]?.image) {
+                await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    chat_id: chatId,
+                    photo: items[0].image,
+                    caption: msg,
+                    parse_mode: 'Markdown',
+                    reply_markup: kb,
+                  }),
+                });
+              } else {
+                await sendTelegramTextMessage(chatId, msg);
+              }
+            }
+          }
+        }
+        return NextResponse.json({ ok: true, action: 'search_completed' });
+      }
+
+      return NextResponse.json({ ok: true });
+    }
+
+    // 3. Handle Inline Search Queries (Live Search Bar)
+    if (body.inline_query) {
+      const inlineQuery = body.inline_query;
+      const query = (inlineQuery.query || '').trim().toLowerCase();
+      const { botToken } = getTelegramConfig();
+
+      const { data: orders } = await supabaseAdmin
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      const matched = (orders || []).filter((o: any) => {
+        if (!query) return true;
+        const shortId = o.id.slice(0, 8).toLowerCase();
+        const fullId = o.id.toLowerCase();
+        const customer = (o.telegram_name || '').toLowerCase();
+        const phone = (o.telegram_phone || '').toLowerCase();
+        return fullId.includes(query) || shortId.includes(query) || customer.includes(query) || phone.includes(query);
+      }).slice(0, 10);
+
+      const results = matched.map((o: any, idx: number) => {
+        const shortId = o.id.slice(0, 8).toUpperCase();
+        const statusEmoji = o.status === 'approved' ? '✅' : o.status === 'rejected' ? '❌' : '⏳';
+        const items = Array.isArray(o.items) ? o.items : [];
+        const itemsSummary = items.map((i: any) => `${i.qty}x ${i.name}`).join(', ');
+        const title = `Receipt #${shortId} — $${Number(o.total_price || 0).toFixed(2)} (${o.status})`;
+        const description = `Customer: @${o.telegram_name || 'customer'} | Items: ${itemsSummary || 'N/A'}`;
+        const messageText = `🛍️ *STARFASHION ORDER RECEIPT*
+🔖 *Order ID:* \`#${shortId}\`
+👤 *Customer:* @${o.telegram_name || 'customer'} (📞 \`${o.telegram_phone || 'N/A'}\`)
+📍 *Address:* ${o.address || 'N/A'}
+📦 *Items:* ${itemsSummary || 'N/A'}
+💰 *Total:* *$${Number(o.total_price || 0).toFixed(2)}*
+⚡ *Status:* ${statusEmoji} *${(o.status || 'pending').toUpperCase()}*`;
+
+        return {
+          type: 'article',
+          id: o.id || String(idx),
+          title: title,
+          description: description,
+          thumb_url: items[0]?.image || 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?q=80&w=200&auto=format&fit=crop',
+          input_message_content: {
+            message_text: messageText,
+            parse_mode: 'Markdown',
+          },
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: '✅ Accept Order', callback_data: `approve_${o.id}` },
+                { text: '❌ Reject Order', callback_data: `reject_${o.id}` },
+              ],
+              [
+                { text: `💬 Chat with @${o.telegram_name || 'customer'}`, url: `https://t.me/${(o.telegram_name || '').replace(/^@/, '')}` },
+              ]
+            ]
+          }
+        };
+      });
+
+      await fetch(`https://api.telegram.org/bot${botToken}/answerInlineQuery`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          inline_query_id: inlineQuery.id,
+          results: results,
+          cache_time: 5,
+        }),
+      });
+
       return NextResponse.json({ ok: true });
     }
 

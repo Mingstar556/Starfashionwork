@@ -146,6 +146,18 @@ async function startBot() {
   await api('deleteWebhook', { drop_pending_updates: false });
   console.log('🌐 Polling mode enabled (Webhook disabled for local test environment).');
 
+  // Register Bot Commands & Menu
+  await api('setMyCommands', {
+    commands: [
+      { command: 'search', description: '🔍 Search receipt ID or customer name' },
+      { command: 'orders', description: '📋 List recent orders' },
+      { command: 'status', description: '📊 View store status' },
+      { command: 'test', description: '🧪 Send test receipt notification' },
+      { command: 'start', description: '🚀 Connect bot & show menu' },
+    ]
+  });
+  console.log('🤖 Telegram bot commands registered successfully.');
+
   const db = readDB();
   let currentAdminChatId = process.env.TELEGRAM_CHAT_ID || db.store_settings?.admin_telegram_chat_id || '';
   if (currentAdminChatId) {
@@ -227,6 +239,87 @@ From now on, whenever a customer places an order on your storefront:
                 }).join('\n\n');
                 await api('sendMessage', { chat_id: chatId, text: `📋 *Recent Orders:*\n\n${list}`, parse_mode: 'Markdown' });
               }
+            } else if (text.startsWith('/search') || text.startsWith('/find')) {
+              const query = text.replace(/^\/(search|find)\s*/i, '').trim().toLowerCase();
+              const currentDb = readDB();
+              const orders = currentDb.orders || [];
+
+              if (!query) {
+                await api('sendMessage', {
+                  chat_id: chatId,
+                  text: `🔍 *Search Order Receipts*\n\nUsage: \`/search <receipt_id or customer>\`\nExample: \`/search 7608\` or \`/search ORD-\`\n\nOr click the button below to open the instant search bar:`,
+                  parse_mode: 'Markdown',
+                  reply_markup: {
+                    inline_keyboard: [
+                      [{ text: '🔍 Open Receipt Search Bar', switch_inline_query_current_chat: '' }]
+                    ]
+                  }
+                });
+              } else {
+                const matched = orders.filter(o => {
+                  const shortId = o.id.slice(0, 8).toLowerCase();
+                  const fullId = o.id.toLowerCase();
+                  const customer = (o.telegram_name || '').toLowerCase();
+                  const phone = (o.telegram_phone || '').toLowerCase();
+                  return fullId.includes(query) || shortId.includes(query) || customer.includes(query) || phone.includes(query);
+                }).slice(0, 5);
+
+                if (matched.length === 0) {
+                  await api('sendMessage', {
+                    chat_id: chatId,
+                    text: `❌ No receipt found matching "*${query}*".\nTry searching by partial Order ID (e.g. \`7608\`) or customer username.`,
+                    parse_mode: 'Markdown',
+                    reply_markup: {
+                      inline_keyboard: [
+                        [{ text: '🔍 Open Receipt Search Bar', switch_inline_query_current_chat: '' }]
+                      ]
+                    }
+                  });
+                } else {
+                  for (const o of matched) {
+                    const shortId = o.id.slice(0, 8).toUpperCase();
+                    const statusEmoji = o.status === 'approved' ? '✅' : o.status === 'rejected' ? '❌' : '⏳';
+                    const itemsSummary = (o.items || []).map(i => `${i.qty}x ${i.name} ($${i.price})`).join('\n   • ');
+                    const msg = `🛍️ *RECEIPT SEARCH RESULT*
+🔖 *Order ID:* \`#${shortId}\`
+👤 *Customer:* @${o.telegram_name} | 📞 \`${o.telegram_phone}\`
+📍 *Address:* ${o.address}
+📦 *Items:*
+   • ${itemsSummary}
+💰 *Total:* *$${o.total_price.toFixed(2)}*
+⚡ *Status:* ${statusEmoji} *${o.status.toUpperCase()}*`;
+
+                    const kb = {
+                      inline_keyboard: [
+                        [
+                          { text: '✅ Accept Order', callback_data: `approve_${o.id}` },
+                          { text: '❌ Reject Order', callback_data: `reject_${o.id}` },
+                        ],
+                        [
+                          { text: `💬 Chat with @${o.telegram_name}`, url: `https://t.me/${o.telegram_name.replace(/^@/, '')}` },
+                        ]
+                      ]
+                    };
+
+                    if (o.items?.[0]?.image) {
+                      await api('sendPhoto', {
+                        chat_id: chatId,
+                        photo: o.items[0].image,
+                        caption: msg,
+                        parse_mode: 'Markdown',
+                        reply_markup: kb,
+                      });
+                    } else {
+                      await api('sendMessage', {
+                        chat_id: chatId,
+                        text: msg,
+                        parse_mode: 'Markdown',
+                        reply_markup: kb,
+                      });
+                    }
+                  }
+                }
+              }
             } else {
               await api('sendMessage', {
                 chat_id: chatId,
@@ -306,6 +399,68 @@ From now on, whenever a customer places an order on your storefront:
                 });
               }
             }
+          }
+
+          // C. Handle Inline Search Queries (Live Search Bar)
+          if (update.inline_query) {
+            const inlineQuery = update.inline_query;
+            const query = (inlineQuery.query || '').trim().toLowerCase();
+            const currentDb = readDB();
+            const orders = currentDb.orders || [];
+
+            const matched = orders.filter(o => {
+              if (!query) return true;
+              const shortId = o.id.slice(0, 8).toLowerCase();
+              const fullId = o.id.toLowerCase();
+              const customer = (o.telegram_name || '').toLowerCase();
+              const phone = (o.telegram_phone || '').toLowerCase();
+              const status = (o.status || '').toLowerCase();
+              return fullId.includes(query) || shortId.includes(query) || customer.includes(query) || phone.includes(query) || status.includes(query);
+            }).slice(0, 10);
+
+            const results = matched.map((o, idx) => {
+              const shortId = o.id.slice(0, 8).toUpperCase();
+              const statusEmoji = o.status === 'approved' ? '✅' : o.status === 'rejected' ? '❌' : '⏳';
+              const itemsSummary = (o.items || []).map(i => `${i.qty}x ${i.name}`).join(', ');
+              const title = `Receipt #${shortId} — $${Number(o.total_price || 0).toFixed(2)} (${o.status})`;
+              const description = `Customer: @${o.telegram_name || 'customer'} | Items: ${itemsSummary || 'N/A'}`;
+              const messageText = `🛍️ *STARFASHION ORDER RECEIPT*
+🔖 *Order ID:* \`#${shortId}\`
+👤 *Customer:* @${o.telegram_name || 'customer'} (📞 \`${o.telegram_phone || 'N/A'}\`)
+📍 *Address:* ${o.address || 'N/A'}
+📦 *Items:* ${itemsSummary || 'N/A'}
+💰 *Total:* *$${Number(o.total_price || 0).toFixed(2)}*
+⚡ *Status:* ${statusEmoji} *${(o.status || 'pending').toUpperCase()}*`;
+
+              return {
+                type: 'article',
+                id: o.id || String(idx),
+                title: title,
+                description: description,
+                thumb_url: (o.items?.[0]?.image) || 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?q=80&w=200&auto=format&fit=crop',
+                input_message_content: {
+                  message_text: messageText,
+                  parse_mode: 'Markdown',
+                },
+                reply_markup: {
+                  inline_keyboard: [
+                    [
+                      { text: '✅ Accept Order', callback_data: `approve_${o.id}` },
+                      { text: '❌ Reject Order', callback_data: `reject_${o.id}` },
+                    ],
+                    [
+                      { text: `💬 Chat with @${o.telegram_name || 'customer'}`, url: `https://t.me/${(o.telegram_name || '').replace(/^@/, '')}` },
+                    ]
+                  ]
+                }
+              };
+            });
+
+            await api('answerInlineQuery', {
+              inline_query_id: inlineQuery.id,
+              results: results,
+              cache_time: 5,
+            });
           }
         }
       }
