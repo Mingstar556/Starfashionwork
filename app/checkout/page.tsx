@@ -34,14 +34,25 @@ export default function CheckoutPage() {
     setError('');
 
     try {
+      // Clean and sanitize items to prevent sending massive base64 payloads across the network
+      const sanitizedItems = items.map((item) => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        qty: item.qty,
+        size: item.size,
+        image: item.image && item.image.startsWith('data:') ? undefined : item.image,
+        stock: item.stock,
+      }));
+
       const response = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          telegram_name: telegramName,
-          telegram_phone: telegramPhone,
-          address,
-          items,
+          telegram_name: telegramName.trim().replace(/^@/, ''),
+          telegram_phone: telegramPhone.trim(),
+          address: address.trim(),
+          items: sanitizedItems,
           payment_method: paymentMethod,
         }),
       });

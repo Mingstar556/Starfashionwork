@@ -76,7 +76,6 @@ async function main() {
     inline_keyboard: [
       [
         { text: '💬 Chat with @starboy', url: 'https://t.me/starboy' },
-        { text: '📞 Call Customer', url: 'tel:+85512345678' },
       ],
       [
         { text: '✅ Approve Order', callback_data: `approve_${shortId}` },

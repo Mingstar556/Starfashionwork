@@ -13,7 +13,9 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, '..');
-const adminRoot = path.join(projectRoot, 'Starfashion admin');
+const adminRoot = fs.existsSync(path.join(projectRoot, 'admin'))
+  ? path.join(projectRoot, 'admin')
+  : path.join(projectRoot, 'Starfashion admin');
 const envPath = path.join(projectRoot, '.env.local');
 const adminEnvPath = path.join(adminRoot, '.env.local');
 

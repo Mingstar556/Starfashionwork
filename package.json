@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000 -H 0.0.0.0",
-    "admin": "npm --prefix 'Starfashion admin' run dev",
+    "admin": "npm --prefix admin run dev",
     "test-env": "node scripts/start-test-env.mjs",
     "bot": "node scripts/telegram-bot-runner.mjs",
     "bot:test": "node scripts/send-test-notification.mjs",
