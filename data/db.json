@@ -222,6 +222,45 @@
   ],
   "orders": [
     {
+      "id": "ord-wtnurcmmv",
+      "created_at": "2026-11-07T07:36:57.013Z",
+      "telegram_name": "price_hacker",
+      "telegram_phone": "+85512345678",
+      "address": "Street 19, Phnom Penh",
+      "items": [
+        {
+          "id": "prod-1",
+          "name": "Starboy Oversized Heavyweight Hoodie",
+          "price": 120,
+          "qty": 1,
+          "size": "L"
+        }
+      ],
+      "total_price": 120,
+      "payment_method": "KHQR",
+      "status": "pending"
+    },
+    {
+      "id": "ord-20aegk498",
+      "created_at": "2026-11-07T07:36:47.775Z",
+      "telegram_name": "starfashion_shopper",
+      "telegram_phone": "+85512345678",
+      "address": "Street 19, Phnom Penh",
+      "items": [
+        {
+          "id": "prod-1",
+          "name": "Starboy Oversized Heavyweight Hoodie",
+          "price": 120,
+          "qty": 1,
+          "size": "L",
+          "stock": 10
+        }
+      ],
+      "total_price": 120,
+      "payment_method": "KHQR",
+      "status": "pending"
+    },
+    {
       "id": "ord-di8ebzfua",
       "created_at": "2026-11-07T06:06:32.923Z",
       "telegram_name": "mingstar",

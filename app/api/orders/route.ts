@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { sendTelegramOrderNotification } from '@/lib/telegram';
+import { createOrderSchema, logSecurityEvent, sanitizeInput } from '@/lib/security';
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
-    if (!id) {
-      return NextResponse.json({ error: 'Order ID is required' }, { status: 400 });
+    if (!id || typeof id !== 'string' || id.length > 100) {
+      return NextResponse.json({ error: 'Valid Order ID is required' }, { status: 400 });
     }
     const { data: orderData, error } = await supabaseAdmin
       .from('orders')
@@ -28,27 +29,69 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { telegram_name, telegram_phone, address, items, payment_method } = body;
 
-    if (!telegram_name || !telegram_phone || !address || !items || !items.length || !payment_method) {
-      return NextResponse.json({ error: 'Missing required order fields' }, { status: 400 });
+    // Strict Zod Validation & Mass-Assignment Prevention
+    const validationResult = createOrderSchema.safeParse(body);
+    if (!validationResult.success) {
+      logSecurityEvent('ORDER_VALIDATION_FAILED', { issues: validationResult.error.issues, body });
+      return NextResponse.json(
+        { error: 'Security Validation Failed: Invalid order payload or unexpected fields.', details: validationResult.error.issues },
+        { status: 400 }
+      );
     }
 
-    const total_price = items.reduce(
-      (sum: number, item: { price: number; qty: number }) => sum + item.price * item.qty,
-      0
-    );
+    const { telegram_name, telegram_phone, address, items, payment_method } = validationResult.data;
 
-    // 1. Insert order into Supabase with status 'pending'
+    // Server-Side Authoritative Pricing & Paygate Tampering Prevention
+    let calculated_total = 0;
+    const { readDB } = await import('@/lib/db');
+    const db = readDB();
+
+    const verifiedItems = items.map((item) => {
+      const catalogProduct = db.products?.find((p) => p.id === item.id);
+      const realPrice = catalogProduct ? Number(catalogProduct.price) : Number(item.price);
+
+      if (catalogProduct && Math.abs(Number(catalogProduct.price) - Number(item.price)) > 0.001) {
+        logSecurityEvent('PAYGATE_PRICE_TAMPERING_INTERCEPTED', {
+          itemId: item.id,
+          submittedPrice: item.price,
+          authoritativePrice: catalogProduct.price,
+        });
+      }
+
+      const qty = Number(item.qty);
+      if (isNaN(realPrice) || realPrice <= 0 || isNaN(qty) || qty <= 0) {
+        throw new Error('Invalid item price or quantity');
+      }
+
+      calculated_total += realPrice * qty;
+
+      return {
+        ...item,
+        name: catalogProduct ? catalogProduct.name : sanitizeInput(item.name),
+        price: realPrice,
+      };
+    });
+
+    if (calculated_total <= 0) {
+      return NextResponse.json({ error: 'Paygate Security Violation: Total amount must be positive.' }, { status: 400 });
+    }
+
+    // Sanitize user inputs
+    const sanitizedName = sanitizeInput(telegram_name).replace(/^@/, '');
+    const sanitizedPhone = sanitizeInput(telegram_phone);
+    const sanitizedAddress = sanitizeInput(address);
+
+    // 1. Insert order into database with status 'pending'
     const { data: orderData, error: dbError } = await supabaseAdmin
       .from('orders')
       .insert([
         {
-          telegram_name: telegram_name.replace(/^@/, ''),
-          telegram_phone,
-          address,
-          items,
-          total_price,
+          telegram_name: sanitizedName,
+          telegram_phone: sanitizedPhone,
+          address: sanitizedAddress,
+          items: verifiedItems,
+          total_price: calculated_total,
           payment_method,
           status: 'pending',
         },
@@ -58,7 +101,7 @@ export async function POST(req: NextRequest) {
 
     if (dbError || !orderData) {
       console.error('Supabase order insert error:', dbError);
-      return NextResponse.json({ error: 'Failed to create order in database' }, { status: 500 });
+      return NextResponse.json({ error: 'Failed to create order in secure database' }, { status: 500 });
     }
 
     // 2. Send Telegram notification

@@ -69,6 +69,14 @@ export async function sendTelegramOrderNotification(order: {
   const cleanPhone = order.telegram_phone.trim();
   const shortId = order.id.slice(0, 8).toUpperCase();
 
+  const { escapeTelegramMarkdown } = await import('./security').catch(() => ({
+    escapeTelegramMarkdown: (s: string) => s.replace(/([_*`\[\]])/g, '\\$1'),
+  }));
+
+  const safeUsername = escapeTelegramMarkdown(cleanUsername);
+  const safePhone = escapeTelegramMarkdown(cleanPhone);
+  const safeAddress = escapeTelegramMarkdown(order.address);
+
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-US', {
     month: 'short',
@@ -84,7 +92,7 @@ export async function sendTelegramOrderNotification(order: {
   const itemsText = order.items
     .map(
       (item, idx) =>
-        `${idx + 1}. *${item.name}*\n   📏 Size: \`${item.size}\` | 🔢 Qty: \`${item.qty}\` | 💵 \`$${(item.price * item.qty).toFixed(2)}\``
+        `${idx + 1}. *${escapeTelegramMarkdown(item.name)}*\n   📏 Size: \`${escapeTelegramMarkdown(item.size)}\` | 🔢 Qty: \`${item.qty}\` | 💵 \`$${(item.price * item.qty).toFixed(2)}\``
     )
     .join('\n');
 
@@ -96,10 +104,10 @@ export async function sendTelegramOrderNotification(order: {
 
 ━━━━━━━━━━━━━━━━━━━━━
 👤 *CUSTOMER CONTACT INFORMATION*
-• *Telegram Username:* @${cleanUsername}
-• *Phone Number:* \`${cleanPhone}\`
+• *Telegram Username:* @${safeUsername}
+• *Phone Number:* \`${safePhone}\`
 • *Delivery Address:*
-  📍 ${order.address}
+  📍 ${safeAddress}
 
 ━━━━━━━━━━━━━━━━━━━━━
 📦 *ORDERED ITEMS (${order.items.length})*
@@ -208,4 +216,30 @@ export async function sendTelegramTextMessage(chatId: string | number, text: str
     console.error('[Telegram] Failed to send text message:', error);
     return null;
   }
+}
+
+export async function sendTestReceiptNotification(targetChatId?: string | number) {
+  const { chatId } = getTelegramConfig();
+  const effectiveChatId = targetChatId || chatId;
+  if (!effectiveChatId) return { ok: false, error: 'No Chat ID provided' };
+
+  if (targetChatId) {
+    saveAdminTelegramChatId(targetChatId);
+  }
+
+  const testOrder = {
+    id: 'TEST-' + Math.random().toString(36).substring(2, 6).toUpperCase(),
+    telegram_name: 'starfashion_customer',
+    telegram_phone: '+855 12 345 678',
+    address: 'Preah Norodom Blvd, Phnom Penh, Cambodia',
+    items: [
+      { name: 'Starboy Leather Biker Jacket', size: 'L', qty: 1, price: 320 },
+      { name: 'Tailored Wide-Leg Trousers', size: 'M', qty: 1, price: 145 },
+    ],
+    total_price: 465,
+    payment_method: 'KHQR',
+  };
+
+  const res = await sendTelegramOrderNotification(testOrder);
+  return { ok: Boolean(res), result: res };
 }

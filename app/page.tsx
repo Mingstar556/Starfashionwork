@@ -293,14 +293,18 @@ function HomeContent() {
       {/* Footer */}
       <footer className="mt-20 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-zinc-500 font-mono">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-zinc-900 dark:text-zinc-100">STARFASHION</span>
-            <span>— Modern Editorial Luxury & Streetwear</span>
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-zinc-900 dark:text-zinc-100">STARFASHION</span>
+              <span>— Modern Editorial Luxury & Streetwear</span>
+            </div>
+            <p>© 2026 Star Fashion Brand. All rights reserved. Protected under Commercial Enterprise & Copyright License.</p>
           </div>
           <div className="flex items-center gap-6">
             <Link href="/checkout" className="hover:text-zinc-900 dark:hover:text-white transition">
-              Checkout
+              Checkout & Paygate
             </Link>
+            <span className="text-emerald-500 font-bold">🔒 Firewall & SSL Secured</span>
           </div>
         </div>
       </footer>
