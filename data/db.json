@@ -222,6 +222,68 @@
   ],
   "orders": [
     {
+      "id": "ord-08qgx4di6",
+      "created_at": "2026-11-07T08:34:48.177Z",
+      "telegram_name": "nisaphal",
+      "telegram_phone": "060206666",
+      "address": "tsp2, st328",
+      "items": [
+        {
+          "id": "prod-6",
+          "name": "Old Money Silk Button-Up Shirt",
+          "price": 95,
+          "qty": 1,
+          "size": "S",
+          "image": "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?q=80&w=800&auto=format&fit=crop",
+          "stock": 25
+        },
+        {
+          "id": "prod-9",
+          "name": "Starboy Rhinestone Skull Hoodie",
+          "price": 140,
+          "qty": 2,
+          "size": "L",
+          "image": "https://images.unsplash.com/photo-1509631179647-0177331693ae?q=80&w=800&auto=format&fit=crop",
+          "stock": 10
+        }
+      ],
+      "total_price": 375,
+      "payment_method": "COD",
+      "status": "pending",
+      "telegram_message_id": 25
+    },
+    {
+      "id": "ord-t69jsaxya",
+      "created_at": "2026-11-07T08:17:22.444Z",
+      "telegram_name": "nisaphal",
+      "telegram_phone": "060206666",
+      "address": "tsp2, st328 phnom penh",
+      "items": [
+        {
+          "id": "prod-11",
+          "name": "Techwear Tactical Vest",
+          "price": 110,
+          "qty": 1,
+          "size": "S",
+          "image": "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=800&auto=format&fit=crop",
+          "stock": 22
+        },
+        {
+          "id": "prod-5",
+          "name": "Starboy Velvet Puffer Jacket",
+          "price": 210,
+          "qty": 1,
+          "size": "S",
+          "image": "https://images.unsplash.com/photo-1544441893-675973e31985?q=80&w=800&auto=format&fit=crop",
+          "stock": 12
+        }
+      ],
+      "total_price": 320,
+      "payment_method": "COD",
+      "status": "pending",
+      "telegram_message_id": 22
+    },
+    {
       "id": "ord-olr8245yo",
       "created_at": "2026-11-07T08:14:31.456Z",
       "telegram_name": "test_customer",

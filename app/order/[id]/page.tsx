@@ -202,14 +202,30 @@ export default function OrderConfirmationPage() {
             </h3>
             <div className="space-y-3">
               {order.items.map((item, idx) => (
-                <div key={idx} className="flex justify-between items-center text-sm">
-                  <div>
-                    <p className="font-semibold">{item.name}</p>
-                    <p className="text-xs text-zinc-500 uppercase font-mono">
-                      Size: {item.size} | Qty: {item.qty}
-                    </p>
+                <div key={idx} className="flex justify-between items-center text-sm gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    {item.image ? (
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="w-12 h-12 object-cover rounded bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shrink-0"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-400 shrink-0">
+                        <Package className="w-5 h-5" />
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="font-semibold truncate">{item.name}</p>
+                      <p className="text-xs text-zinc-500 uppercase font-mono">
+                        Size: {item.size} | Qty: {item.qty}
+                      </p>
+                    </div>
                   </div>
-                  <span className="font-mono font-bold">${(item.price * item.qty).toFixed(2)}</span>
+                  <span className="font-mono font-bold shrink-0">${(item.price * item.qty).toFixed(2)}</span>
                 </div>
               ))}
             </div>

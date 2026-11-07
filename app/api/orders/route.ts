@@ -66,10 +66,16 @@ export async function POST(req: NextRequest) {
 
       calculated_total += realPrice * qty;
 
+      const productImage =
+        (catalogProduct && catalogProduct.images && catalogProduct.images[0]) ||
+        item.image ||
+        '';
+
       return {
         ...item,
         name: catalogProduct ? catalogProduct.name : sanitizeInput(item.name),
         price: realPrice,
+        image: productImage,
       };
     });
 

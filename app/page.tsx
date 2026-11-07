@@ -261,7 +261,12 @@ function HomeContent() {
               className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8"
             >
               {products.map((product, idx) => (
-                <ProductCard key={product.id} product={product} index={idx} />
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  index={idx}
+                  onOpenCart={() => setIsCartOpen(true)}
+                />
               ))}
             </motion.div>
           )}
