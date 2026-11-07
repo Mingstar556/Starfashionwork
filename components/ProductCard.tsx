@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Check } from 'lucide-react';
+import { Plus, Check, X, ShoppingBag } from 'lucide-react';
 import { useCartStore } from '@/lib/store/cartStore';
 
 interface Product {
@@ -25,14 +25,21 @@ interface ProductCardProps {
 
 export default function ProductCard({ product, index = 0, onOpenCart }: ProductCardProps) {
   const addToCart = useCartStore((state) => state.addToCart);
-  const [added, setAdded] = useState(false);
+  const [addedSize, setAddedSize] = useState<string | null>(null);
+  const [isSizeSelectorOpen, setIsSizeSelectorOpen] = useState(false);
 
-  const handleQuickAdd = (e: React.MouseEvent) => {
+  const availableSizes = product.sizes && product.sizes.length > 0 ? product.sizes : ['S', 'M', 'L', 'XL'];
+  const availableStock = product.stock ?? 10;
+
+  const handleOpenSizeModal = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    setIsSizeSelectorOpen(true);
+  };
 
-    const selectedSize = product.sizes && product.sizes.length > 0 ? product.sizes[0] : 'M';
-    const availableStock = product.stock ?? 10;
+  const handleSelectSize = (e: React.MouseEvent, size: string) => {
+    e.preventDefault();
+    e.stopPropagation();
 
     addToCart(
       {
@@ -41,16 +48,19 @@ export default function ProductCard({ product, index = 0, onOpenCart }: ProductC
         price: product.price,
         images: product.images || [],
       },
-      selectedSize,
+      size,
       1,
       availableStock
     );
 
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1500);
-    if (onOpenCart) {
-      onOpenCart();
-    }
+    setAddedSize(size);
+    setTimeout(() => {
+      setAddedSize(null);
+      setIsSizeSelectorOpen(false);
+      if (onOpenCart) {
+        onOpenCart();
+      }
+    }, 700);
   };
 
   return (
@@ -59,7 +69,7 @@ export default function ProductCard({ product, index = 0, onOpenCart }: ProductC
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-50px' }}
       transition={{ duration: 0.5, delay: (index % 4) * 0.1, ease: [0.25, 0.1, 0.25, 1.0] }}
-      className="group flex flex-col"
+      className="group flex flex-col relative"
     >
       <div className="relative aspect-[3/4] bg-zinc-100 dark:bg-zinc-900 overflow-hidden rounded-sm">
         <Link href={`/product/${product.id}`} className="block w-full h-full">
@@ -90,39 +100,75 @@ export default function ProductCard({ product, index = 0, onOpenCart }: ProductC
           type="button"
           whileHover={{ scale: 1.15 }}
           whileTap={{ scale: 0.9 }}
-          onClick={handleQuickAdd}
-          aria-label="Add item to cart"
-          title="Quick add to cart"
-          className={`absolute bottom-3 right-3 z-20 w-9 h-9 rounded-full flex items-center justify-center shadow-lg transition-colors duration-200 border ${
-            added
-              ? 'bg-emerald-500 border-emerald-400 text-white'
-              : 'bg-white text-zinc-950 border-zinc-200 hover:bg-black hover:text-white dark:bg-zinc-900 dark:text-white dark:border-zinc-700 dark:hover:bg-white dark:hover:text-black'
-          }`}
+          onClick={handleOpenSizeModal}
+          aria-label="Choose size to add item to cart"
+          title="Choose size & add to cart"
+          className="absolute bottom-3 right-3 z-20 w-9 h-9 rounded-full flex items-center justify-center shadow-lg transition-colors duration-200 border bg-white text-zinc-950 border-zinc-200 hover:bg-black hover:text-white dark:bg-zinc-900 dark:text-white dark:border-zinc-700 dark:hover:bg-white dark:hover:text-black"
         >
-          <AnimatePresence mode="wait" initial={false}>
-            {added ? (
-              <motion.div
-                key="check"
-                initial={{ scale: 0, rotate: -45 }}
-                animate={{ scale: 1, rotate: 0 }}
-                exit={{ scale: 0 }}
-                transition={{ duration: 0.15 }}
-              >
-                <Check className="w-4 h-4 stroke-[2.5]" />
-              </motion.div>
-            ) : (
-              <motion.div
-                key="plus"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                exit={{ scale: 0 }}
-                transition={{ duration: 0.15 }}
-              >
-                <Plus className="w-4 h-4 stroke-[2.5]" />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <Plus className="w-4 h-4 stroke-[2.5]" />
         </motion.button>
+
+        {/* Quick Size Pop-up Overlay directly over Product Card */}
+        <AnimatePresence>
+          {isSizeSelectorOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 15 }}
+              transition={{ duration: 0.2 }}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              className="absolute inset-x-0 bottom-0 z-30 bg-zinc-950/95 backdrop-blur-md p-4 border-t border-zinc-800 shadow-2xl flex flex-col justify-end"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-200 flex items-center gap-1.5 font-mono">
+                  <ShoppingBag className="w-3.5 h-3.5 text-zinc-400" /> Select Size
+                </span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsSizeSelectorOpen(false);
+                  }}
+                  className="p-1 text-zinc-400 hover:text-white transition"
+                  aria-label="Close size selector"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Size Buttons Grid */}
+              <div className="grid grid-cols-4 gap-1.5">
+                {availableSizes.map((size) => {
+                  const isSelected = addedSize === size;
+                  return (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={(e) => handleSelectSize(e, size)}
+                      className={`h-9 text-xs font-mono font-bold uppercase transition flex items-center justify-center border ${
+                        isSelected
+                          ? 'bg-emerald-500 text-white border-emerald-400'
+                          : 'bg-zinc-900 text-zinc-100 border-zinc-700 hover:bg-white hover:text-black hover:border-white'
+                      }`}
+                    >
+                      {isSelected ? <Check className="w-3.5 h-3.5" /> : size}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-2 text-center">
+                <span className="text-[10px] text-zinc-400 font-mono">
+                  ${product.price.toFixed(2)} • Tap size to add
+                </span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <div className="mt-4 flex flex-col justify-between flex-1">
