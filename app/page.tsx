@@ -1,69 +1,268 @@
-import Image from "next/image";
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
+import { supabase } from '@/lib/supabase';
+import ProductCard from '@/components/ProductCard';
+import Navbar from '@/components/Navbar';
+import MobileBottomNav from '@/components/MobileBottomNav';
+import { useSearchParams } from 'next/navigation';
+import { ShoppingBag } from 'lucide-react';
+import { useCartStore } from '@/lib/store/cartStore';
+import CartDrawer from '@/components/CartDrawer';
+
+interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  images: string[];
+  sizes: string[];
+  stock: number;
+  is_featured: boolean;
+}
+
+interface StoreSettings {
+  banner_images: string[];
+  announcement_text: string;
+  is_store_open: boolean;
+}
 
 export default function Home() {
+  const searchParams = useSearchParams();
+  const currentCategory = searchParams.get('category') || 'all';
+
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState<StoreSettings>({
+    banner_images: [
+      'https://images.unsplash.com/photo-1509631179647-0177331693ae?q=80&w=1600&auto=format&fit=crop',
+      'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=1600&auto=format&fit=crop',
+    ],
+    announcement_text: '⚡ FREE WORLDWIDE SHIPPING ON ORDERS OVER $150 | USE CODE: STAR10',
+    is_store_open: true,
+  });
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+
+  const cartCount = useCartStore((state) => state.cartCount());
+
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      // Fetch settings
+      const { data: settingsData } = await supabase
+        .from('store_settings')
+        .select('*')
+        .eq('id', 'main')
+        .single();
+
+      if (settingsData) {
+        setSettings(settingsData);
+      }
+
+      // Fetch products
+      let query = supabase.from('products').select('*');
+      if (currentCategory !== 'all') {
+        query = query.eq('category', currentCategory);
+      }
+
+      const { data: productData, error } = await query.order('created_at', { ascending: false });
+      if (!error && productData) {
+        setProducts(productData);
+      } else {
+        // Fallback mock data if table is not populated yet
+        setProducts([
+          {
+            id: 'mock-1',
+            name: 'Starboy Oversized Heavyweight Hoodie',
+            description: 'Premium French terry cotton, acid wash finish, custom metal hardware.',
+            price: 120,
+            category: 'starboy',
+            images: ['https://images.unsplash.com/photo-1556905055-8f358a7a47b2?q=80&w=800&auto=format&fit=crop'],
+            sizes: ['S', 'M', 'L', 'XL'],
+            stock: 15,
+            is_featured: true,
+          },
+          {
+            id: 'mock-2',
+            name: 'Old Money Cashmere Blend Turtleneck',
+            description: 'Ultra-luxurious merino wool and cashmere blend for timeless elegance.',
+            price: 185,
+            category: 'old_money',
+            images: ['https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?q=80&w=800&auto=format&fit=crop'],
+            sizes: ['M', 'L', 'XL'],
+            stock: 8,
+            is_featured: true,
+          },
+          {
+            id: 'mock-3',
+            name: 'Cyberpunk Techwear Cargo Pants',
+            description: 'Multi-pocket utilitarian design with adjustable straps and water-resistant fabric.',
+            price: 145,
+            category: 'streetwear',
+            images: ['https://images.unsplash.com/photo-1517445312882-bc9910d016b7?q=80&w=800&auto=format&fit=crop'],
+            sizes: ['S', 'M', 'L'],
+            stock: 12,
+            is_featured: false,
+          },
+          {
+            id: 'mock-4',
+            name: 'Minimalist Relaxed Fit Linen Shirt',
+            description: 'Breathable organic linen tailored for effortless casual sophistication.',
+            price: 90,
+            category: 'casual',
+            images: ['https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?q=80&w=800&auto=format&fit=crop'],
+            sizes: ['S', 'M', 'L', 'XL'],
+            stock: 20,
+            is_featured: false,
+          },
+        ]);
+      }
+      setLoading(false);
+    }
+
+    fetchData();
+  }, [currentCategory]);
+
+  // Auto-sliding banner
+  useEffect(() => {
+    if (!settings.banner_images || settings.banner_images.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentBannerIndex((prev) => (prev + 1) % settings.banner_images.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [settings.banner_images]);
+
+  const categories = [
+    { label: 'All', value: 'all' },
+    { label: 'Starboy', value: 'starboy' },
+    { label: 'Old Money', value: 'old_money' },
+    { label: 'Casual', value: 'casual' },
+    { label: 'Streetwear', value: 'streetwear' },
+  ];
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 pb-20 md:pb-0">
+      {/* Announcement Bar */}
+      <div className="bg-black text-white dark:bg-white dark:text-black py-2.5 px-4 text-center text-xs font-mono font-bold tracking-widest uppercase overflow-hidden">
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          key={settings.announcement_text}
+        >
+          {settings.announcement_text}
+        </motion.div>
+      </div>
+
+      <Navbar />
+
+      {/* Hero Banner */}
+      {settings.banner_images && settings.banner_images.length > 0 && (
+        <section className="relative w-full h-[60vh] sm:h-[70vh] bg-zinc-900 overflow-hidden">
+          {settings.banner_images.map((img, idx) => (
+            <motion.div
+              key={img}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: idx === currentBannerIndex ? 1 : 0 }}
+              transition={{ duration: 1 }}
+              className="absolute inset-0"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              <img src={img} alt="Hero Banner" className="w-full h-full object-cover opacity-70" />
+            </motion.div>
+          ))}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-8 sm:p-16 max-w-7xl mx-auto">
+            <motion.span
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-xs font-mono uppercase tracking-widest text-zinc-300 mb-2"
             >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              Spring / Summer 2026 Collection
+            </motion.span>
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="text-3xl sm:text-6xl font-black uppercase tracking-tighter text-white max-w-2xl"
+            >
+              Redefining Modern Luxury & Streetwear
+            </motion.h1>
+          </div>
+        </section>
+      )}
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Category Tabs */}
+        <div className="flex overflow-x-auto space-x-2 pb-4 mb-12 border-b border-zinc-200 dark:border-zinc-800 scrollbar-none">
+          {categories.map((cat) => {
+            const isActive = currentCategory === cat.value;
+            return (
+              <a
+                key={cat.value}
+                href={`/?category=${cat.value}`}
+                className={`px-6 py-2.5 text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-all ${
+                  isActive
+                    ? 'bg-black text-white dark:bg-white dark:text-black'
+                    : 'bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-800'
+                }`}
+              >
+                {cat.label}
+              </a>
+            );
+          })}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+
+        {/* Product Grid / Skeleton */}
+        {loading ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+              <div key={n} className="flex flex-col space-y-3 animate-pulse">
+                <div className="aspect-[3/4] bg-zinc-200 dark:bg-zinc-800 w-full" />
+                <div className="h-4 bg-zinc-200 dark:bg-zinc-800 w-3/4" />
+                <div className="h-4 bg-zinc-200 dark:bg-zinc-800 w-1/2" />
+              </div>
+            ))}
+          </div>
+        ) : products.length === 0 ? (
+          <div className="text-center py-24 space-y-4">
+            <p className="text-zinc-500 uppercase tracking-widest text-sm">No products found in this category.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
+            {products.map((product, idx) => (
+              <ProductCard key={product.id} product={product} index={idx} />
+            ))}
+          </div>
+        )}
       </main>
+
+      {/* Sticky Bottom Cart Button for Mobile */}
+      <div className="md:hidden fixed bottom-16 left-0 right-0 z-30 px-6 pointer-events-none">
+        {cartCount > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="pointer-events-auto"
+          >
+            <button
+              onClick={() => setIsCartOpen(true)}
+              className="w-full py-4 bg-black dark:bg-white text-white dark:text-black font-bold uppercase tracking-widest text-xs flex items-center justify-between px-6 shadow-2xl rounded-full"
+            >
+              <div className="flex items-center gap-2">
+                <ShoppingBag className="w-4 h-4" />
+                <span>View Cart ({cartCount})</span>
+              </div>
+              <span className="font-mono">Open →</span>
+            </button>
+          </motion.div>
+        )}
+      </div>
+
+      <MobileBottomNav />
+      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </div>
   );
 }
