@@ -16,7 +16,7 @@ export default function AdminLoginPage() {
     setError('');
 
     try {
-      const res = await fetch('/api/admin/login', {
+      const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password }),
@@ -27,7 +27,7 @@ export default function AdminLoginPage() {
         throw new Error(data.error || 'Invalid password');
       }
 
-      router.push('/admin');
+      router.push('/');
       router.refresh();
     } catch (err: unknown) {
       const error = err as Error;
@@ -37,29 +37,29 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex items-center justify-center px-4">
-      <div className="max-w-md w-full bg-zinc-50 dark:bg-zinc-900 p-8 sm:p-10 border border-zinc-200 dark:border-zinc-800 shadow-2xl space-y-8">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center px-4">
+      <div className="max-w-md w-full bg-zinc-900 p-8 sm:p-10 border border-zinc-800 shadow-2xl space-y-8">
         <div className="flex flex-col items-center text-center space-y-3">
-          <div className="w-12 h-12 bg-black text-white dark:bg-white dark:text-black rounded-full flex items-center justify-center">
+          <div className="w-12 h-12 bg-white text-zinc-950 rounded-full flex items-center justify-center">
             <ShieldCheck className="w-6 h-6" />
           </div>
           <h1 className="text-xl font-black uppercase tracking-wider">StarFashion Admin</h1>
-          <p className="text-xs text-zinc-500 uppercase tracking-widest font-mono">Protected Management Portal</p>
+          <p className="text-xs text-zinc-400 uppercase tracking-widest font-mono">Isolated Management Dashboard</p>
         </div>
 
         {error && (
-          <div className="p-3 bg-red-50 dark:bg-red-950/50 border border-red-200 text-red-600 text-xs font-mono uppercase text-center">
+          <div className="p-3 bg-red-950/50 border border-red-900 text-red-400 text-xs font-mono uppercase text-center">
             {error}
           </div>
         )}
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
-            <label className="block text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">
+            <label className="block text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2">
               Admin Password
             </label>
             <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-500">
                 <Lock className="w-4 h-4" />
               </span>
               <input
@@ -68,7 +68,7 @@ export default function AdminLoginPage() {
                 placeholder="••••••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-transparent border border-zinc-300 dark:border-zinc-700 text-sm focus:outline-none focus:border-black dark:focus:border-white font-mono"
+                className="w-full pl-10 pr-4 py-3 bg-zinc-950 border border-zinc-800 text-sm focus:outline-none focus:border-white font-mono text-white"
               />
             </div>
           </div>
@@ -76,7 +76,7 @@ export default function AdminLoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 bg-black dark:bg-white text-white dark:text-black font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2 hover:opacity-95 transition shadow-lg"
+            className="w-full py-4 bg-white text-zinc-950 font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2 hover:opacity-95 transition shadow-lg"
           >
             {loading ? (
               <>
@@ -84,7 +84,7 @@ export default function AdminLoginPage() {
               </>
             ) : (
               <>
-                Access Dashboard <ArrowRight className="w-4 h-4" />
+                Access Admin Panel <ArrowRight className="w-4 h-4" />
               </>
             )}
           </button>

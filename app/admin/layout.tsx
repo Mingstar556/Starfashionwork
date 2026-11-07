@@ -1,94 +1,87 @@
-'use client';
-
-import React from 'react';
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, ShoppingCart, Package, Settings, LogOut, Home } from 'lucide-react';
+import { cookies } from 'next/headers';
+import { LayoutDashboard, ShoppingCart, Package, Settings, LogOut } from 'lucide-react';
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const router = useRouter();
+const inter = Inter({ subsets: ['latin'] });
 
-  if (pathname === '/admin/login') {
-    return <>{children}</>;
-  }
+export const metadata: Metadata = {
+  title: 'StarFashion Admin Portal',
+  description: 'Protected management dashboard for StarFashion store inventory and orders.',
+};
 
-  const handleLogout = async () => {
-    await fetch('/api/admin/logout', { method: 'POST' });
-    router.push('/admin/login');
-  };
-
-  const navItems = [
-    { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-    { label: 'Orders', href: '/admin/orders', icon: ShoppingCart },
-    { label: 'Products', href: '/admin/products', icon: Package },
-    { label: 'Store Settings', href: '/admin/store', icon: Settings },
-  ];
+export default async function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const cookieStore = await cookies();
+  const session = cookieStore.get('star_admin_session');
+  const isAuthenticated = session?.value === 'authenticated_token_active';
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 flex flex-col justify-between hidden md:flex">
-        <div>
-          <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
-            <span className="font-mono font-black text-sm uppercase tracking-wider">StarFashion Admin</span>
+    <div className={`${inter.className} min-h-screen bg-zinc-950 text-zinc-100 flex`}>
+      {isAuthenticated && (
+        <aside className="w-64 bg-zinc-900 border-r border-zinc-800 flex flex-col justify-between hidden md:flex">
+          <div className="p-6 space-y-8">
+            <div>
+              <h2 className="text-sm font-black uppercase tracking-tighter text-white">StarFashion Admin</h2>
+              <p className="text-[10px] font-mono uppercase text-zinc-500 mt-0.5">Management Console</p>
+            </div>
+
+            <nav className="space-y-1 font-mono text-xs">
+              <Link
+                href="/admin"
+                className="flex items-center gap-3 px-4 py-3 text-zinc-300 hover:bg-zinc-800 hover:text-white transition"
+              >
+                <LayoutDashboard className="w-4 h-4" /> Dashboard
+              </Link>
+              <Link
+                href="/admin/orders"
+                className="flex items-center gap-3 px-4 py-3 text-zinc-300 hover:bg-zinc-800 hover:text-white transition"
+              >
+                <ShoppingCart className="w-4 h-4" /> Orders
+              </Link>
+              <Link
+                href="/admin/products"
+                className="flex items-center gap-3 px-4 py-3 text-zinc-300 hover:bg-zinc-800 hover:text-white transition"
+              >
+                <Package className="w-4 h-4" /> Products
+              </Link>
+              <Link
+                href="/admin/store"
+                className="flex items-center gap-3 px-4 py-3 text-zinc-300 hover:bg-zinc-800 hover:text-white transition"
+              >
+                <Settings className="w-4 h-4" /> Store Settings
+              </Link>
+            </nav>
           </div>
-          <nav className="p-4 space-y-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-widest transition ${
-                    isActive
-                      ? 'bg-black text-white dark:bg-white dark:text-black'
-                      : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
 
-        <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 space-y-2">
-          <Link
-            href="/"
-            className="flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-widest text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
-          >
-            <Home className="w-4 h-4" /> View Storefront
-          </Link>
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-widest text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition text-left"
-          >
-            <LogOut className="w-4 h-4" /> Logout
-          </button>
-        </div>
-      </aside>
+          <div className="p-6 border-t border-zinc-800">
+            <form action="/api/admin/logout" method="POST">
+              <button
+                type="submit"
+                className="w-full flex items-center justify-center gap-2 py-2.5 bg-red-950/50 hover:bg-red-950 text-red-400 font-mono text-xs uppercase tracking-wider transition border border-red-900/30"
+              >
+                <LogOut className="w-4 h-4" /> Logout
+              </button>
+            </form>
+          </div>
+        </aside>
+      )}
 
-      {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-20 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 px-8 flex items-center justify-between md:justify-end">
-          <span className="md:hidden font-mono font-bold text-sm">StarFashion Admin</span>
+        <header className="h-16 border-b border-zinc-800 px-8 flex items-center justify-between bg-zinc-900/50 backdrop-blur-md">
+          <div className="font-mono text-xs uppercase text-zinc-400">StarFashion Management System</div>
           <div className="flex items-center gap-4">
-            <Link href="/" className="text-xs font-bold uppercase tracking-widest underline hidden sm:inline">
-              Storefront →
+            <Link href="/" className="text-xs font-mono uppercase tracking-widest text-zinc-400 hover:text-white transition underline">
+              View Storefront →
             </Link>
-            <button
-              onClick={handleLogout}
-              className="text-xs font-bold uppercase tracking-widest text-red-600 md:hidden"
-            >
-              Logout
-            </button>
           </div>
         </header>
 
-        <main className="flex-1 p-8 overflow-y-auto">{children}</main>
+        <main className="flex-1 p-6 sm:p-10 overflow-y-auto">{children}</main>
       </div>
     </div>
   );

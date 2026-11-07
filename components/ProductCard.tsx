@@ -21,18 +21,19 @@ interface ProductCardProps {
 export default function ProductCard({ product, index = 0 }: ProductCardProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.4, delay: index * 0.08 }}
+      viewport={{ once: true, margin: '-50px' }}
+      transition={{ duration: 0.5, delay: (index % 4) * 0.1, ease: [0.25, 0.1, 0.25, 1.0] }}
       className="group flex flex-col"
     >
-      <Link href={`/product/${product.id}`} className="relative aspect-[3/4] bg-zinc-100 dark:bg-zinc-900 overflow-hidden">
+      <Link href={`/product/${product.id}`} className="relative aspect-[3/4] bg-zinc-100 dark:bg-zinc-900 overflow-hidden rounded-sm">
         {product.images && product.images[0] ? (
           <img
             src={product.images[0]}
             alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+            loading="lazy"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-xs text-zinc-400 font-mono uppercase">
@@ -41,12 +42,12 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
         )}
 
         {product.is_featured && (
-          <span className="absolute top-3 left-3 bg-black dark:bg-white text-white dark:text-black text-[10px] font-bold uppercase tracking-widest px-2.5 py-1">
+          <span className="absolute top-3 left-3 bg-black dark:bg-white text-white dark:text-black text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 shadow-md">
             Featured
           </span>
         )}
 
-        <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition duration-300" />
+        <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </Link>
 
       <div className="mt-4 flex flex-col justify-between flex-1">

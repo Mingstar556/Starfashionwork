@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import ProductCard from '@/components/ProductCard';
 import Navbar from '@/components/Navbar';
 import MobileBottomNav from '@/components/MobileBottomNav';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { ShoppingBag } from 'lucide-react';
 import { useCartStore } from '@/lib/store/cartStore';
 import CartDrawer from '@/components/CartDrawer';
@@ -30,6 +30,7 @@ interface StoreSettings {
 }
 
 export default function Home() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const currentCategory = searchParams.get('category') || 'all';
 
@@ -51,7 +52,6 @@ export default function Home() {
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-      // Fetch settings
       const { data: settingsData } = await supabase
         .from('store_settings')
         .select('*')
@@ -62,17 +62,15 @@ export default function Home() {
         setSettings(settingsData);
       }
 
-      // Fetch products
       let query = supabase.from('products').select('*');
       if (currentCategory !== 'all') {
         query = query.eq('category', currentCategory);
       }
 
       const { data: productData, error } = await query.order('created_at', { ascending: false });
-      if (!error && productData) {
+      if (!error && productData && productData.length > 0) {
         setProducts(productData);
       } else {
-        // Fallback mock data if table is not populated yet
         setProducts([
           {
             id: 'mock-1',
@@ -126,12 +124,11 @@ export default function Home() {
     fetchData();
   }, [currentCategory]);
 
-  // Auto-sliding banner
   useEffect(() => {
     if (!settings.banner_images || settings.banner_images.length <= 1) return;
     const interval = setInterval(() => {
       setCurrentBannerIndex((prev) => (prev + 1) % settings.banner_images.length);
-    }, 5000);
+    }, 6000);
     return () => clearInterval(interval);
   }, [settings.banner_images]);
 
@@ -142,6 +139,11 @@ export default function Home() {
     { label: 'Casual', value: 'casual' },
     { label: 'Streetwear', value: 'streetwear' },
   ];
+
+  const handleCategoryChange = (val: string) => {
+    const url = val === 'all' ? '/' : `/?category=${val}`;
+    router.replace(url, { scroll: false });
+  };
 
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 pb-20 md:pb-0">
@@ -160,32 +162,32 @@ export default function Home() {
 
       {/* Hero Banner */}
       {settings.banner_images && settings.banner_images.length > 0 && (
-        <section className="relative w-full h-[60vh] sm:h-[70vh] bg-zinc-900 overflow-hidden">
+        <section className="relative w-full h-[65vh] sm:h-[75vh] bg-zinc-900 overflow-hidden">
           {settings.banner_images.map((img, idx) => (
             <motion.div
               key={img}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: idx === currentBannerIndex ? 1 : 0 }}
-              transition={{ duration: 1 }}
+              initial={{ opacity: 0, scale: 1.05 }}
+              animate={{ opacity: idx === currentBannerIndex ? 1 : 0, scale: idx === currentBannerIndex ? 1 : 1.05 }}
+              transition={{ duration: 1.2, ease: [0.25, 0.1, 0.25, 1] }}
               className="absolute inset-0"
             >
-              <img src={img} alt="Hero Banner" className="w-full h-full object-cover opacity-70" />
+              <img src={img} alt="Hero Banner" loading="eager" className="w-full h-full object-cover opacity-75" />
             </motion.div>
           ))}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-8 sm:p-16 max-w-7xl mx-auto">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent flex flex-col justify-end p-8 sm:p-16 max-w-7xl mx-auto">
             <motion.span
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
+              transition={{ delay: 0.2, duration: 0.6 }}
               className="text-xs font-mono uppercase tracking-widest text-zinc-300 mb-2"
             >
               Spring / Summer 2026 Collection
             </motion.span>
             <motion.h1
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 25 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="text-3xl sm:text-6xl font-black uppercase tracking-tighter text-white max-w-2xl"
+              transition={{ delay: 0.35, duration: 0.7 }}
+              className="text-3xl sm:text-6xl font-black uppercase tracking-tighter text-white max-w-2xl leading-none"
             >
               Redefining Modern Luxury & Streetwear
             </motion.h1>
@@ -194,49 +196,75 @@ export default function Home() {
       )}
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Category Tabs */}
-        <div className="flex overflow-x-auto space-x-2 pb-4 mb-12 border-b border-zinc-200 dark:border-zinc-800 scrollbar-none">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        {/* Category Filter Tabs */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="flex overflow-x-auto space-x-2 pb-4 mb-12 border-b border-zinc-200 dark:border-zinc-800 scrollbar-none"
+        >
           {categories.map((cat) => {
             const isActive = currentCategory === cat.value;
             return (
-              <a
+              <button
                 key={cat.value}
-                href={`/?category=${cat.value}`}
-                className={`px-6 py-2.5 text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-all ${
+                onClick={() => handleCategoryChange(cat.value)}
+                className={`px-6 py-2.5 text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-all cursor-pointer ${
                   isActive
-                    ? 'bg-black text-white dark:bg-white dark:text-black'
+                    ? 'bg-black text-white dark:bg-white dark:text-black shadow-md'
                     : 'bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-800'
                 }`}
               >
                 {cat.label}
-              </a>
+              </button>
             );
           })}
-        </div>
+        </motion.div>
 
-        {/* Product Grid / Skeleton */}
-        {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-              <div key={n} className="flex flex-col space-y-3 animate-pulse">
-                <div className="aspect-[3/4] bg-zinc-200 dark:bg-zinc-800 w-full" />
-                <div className="h-4 bg-zinc-200 dark:bg-zinc-800 w-3/4" />
-                <div className="h-4 bg-zinc-200 dark:bg-zinc-800 w-1/2" />
-              </div>
-            ))}
-          </div>
-        ) : products.length === 0 ? (
-          <div className="text-center py-24 space-y-4">
-            <p className="text-zinc-500 uppercase tracking-widest text-sm">No products found in this category.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
-            {products.map((product, idx) => (
-              <ProductCard key={product.id} product={product} index={idx} />
-            ))}
-          </div>
-        )}
+        {/* Product Grid / Skeleton with Smooth Transition */}
+        <AnimatePresence mode="wait">
+          {loading ? (
+            <motion.div
+              key="skeleton"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="grid grid-cols-2 md:grid-cols-4 gap-6"
+            >
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+                <div key={n} className="flex flex-col space-y-3 animate-pulse">
+                  <div className="aspect-[3/4] bg-zinc-200 dark:bg-zinc-800 w-full rounded-sm" />
+                  <div className="h-4 bg-zinc-200 dark:bg-zinc-800 w-3/4" />
+                  <div className="h-4 bg-zinc-200 dark:bg-zinc-800 w-1/2" />
+                </div>
+              ))}
+            </motion.div>
+          ) : products.length === 0 ? (
+            <motion.div
+              key="empty"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="text-center py-24 space-y-4"
+            >
+              <p className="text-zinc-500 uppercase tracking-widest text-sm">No products found in this category.</p>
+            </motion.div>
+          ) : (
+            <motion.div
+              key={currentCategory}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.4 }}
+              className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8"
+            >
+              {products.map((product, idx) => (
+                <ProductCard key={product.id} product={product} index={idx} />
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       {/* Sticky Bottom Cart Button for Mobile */}

@@ -60,7 +60,7 @@ export default function OrderConfirmationPage() {
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${id}` },
-        (payload) => {
+        (payload: any) => {
           setOrder(payload.new as Order);
         }
       )

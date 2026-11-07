@@ -11,5 +11,5 @@ export async function POST() {
     maxAge: 0,
   });
 
-  return NextResponse.json({ success: true });
+  return NextResponse.redirect(new URL('/login', 'http://localhost:3000'));
 }
